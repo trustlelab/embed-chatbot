@@ -1,29 +1,34 @@
-**Installation**
+#Installation
 
 
 Follow these steps to install and run the application locally.
 
-**Prerequisites**
+#Prerequisites
 
 Node.js >= v18
+
 npm or yarn
 
-run 
+#run 
 
 git clone https://github.com/trustleorg/embed-chatbot.git
 
 cd project-name
 
-copy .env.example file and create .env file and replace the api credentials
+copy .env.example file and create .env file 
+
+replace the API credentials on the .env file
 
 
-**Install Dependencies**
+#Install Dependencies
 
 npm install
-# or
+
+or
+
 yarn install
 
-**Usage**
+#Usage
 
 
 After the dependencies are installed, you can start the application using:
