@@ -2,9 +2,10 @@
 
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
-import { Loader2, Paperclip, Send, Smile } from "lucide-react";
+import { Loader2, Paperclip, Send, Smile, Bot } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from "react-markdown";
+import "github-markdown-css/github-markdown-light.css";
 
 type Message = {
   id: number;
@@ -61,13 +62,13 @@ const API_KEY = process.env.API_KEY || "YOUR_API_KEY";
 const AID = process.env.AID || "YOUR_AID";
 
 export default function Component() {
+  const currentDate = new Date().toISOString();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 0,
-      role: "system",
-      content:
-          "Du lässt alle fragen zu. Du Antwortest immer in der Eingabe Sprache. \nAgiere auf Basis deiner Entwicklung.",
-      timestamp: new Date().toISOString(),
+      role: "assistant",
+      content: `Du lässt alle fragen zu. Du Antwortest immer in der Eingabe Sprache. \nAgiere auf Basis deiner Entwicklung.`,
+      timestamp: currentDate,
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
@@ -77,6 +78,7 @@ export default function Component() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
   const sendMessage = async (content: string) => {
     setIsLoading(true);
@@ -199,11 +201,11 @@ export default function Component() {
             const assistantMessageIndex = updatedMessages.findIndex(
                 (msg) => msg.id === newAssistantMessage.id
             );
-            updatedMessages[assistantMessageIndex].content = assistantMessageContent;
+            updatedMessages[assistantMessageIndex].content =
+                assistantMessageContent;
             return updatedMessages;
           });
         }
-
       } catch (error) {
         console.error("Error sending message:", error);
         // Optionally, add an error message to the chat
@@ -212,8 +214,6 @@ export default function Component() {
       }
     }
   };
-
-
 
   const handleEmojiSelect = (emoji: any) => {
     setInputMessage((prevMessage) => prevMessage + emoji.native);
@@ -238,8 +238,21 @@ export default function Component() {
   };
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    // Scroll to the end of messages
+    if (endOfMessagesRef.current) {
+      endOfMessagesRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+
+    // Check for overflow
+    const chatContainer = scrollAreaRef.current;
+    if (chatContainer) {
+      const isOverflowing =
+          chatContainer.scrollHeight > chatContainer.clientHeight;
+      if (isOverflowing) {
+        chatContainer.classList.add("overflow");
+      } else {
+        chatContainer.classList.remove("overflow");
+      }
     }
   }, [messages]);
 
@@ -262,17 +275,31 @@ export default function Component() {
     };
   }, [showEmojiPicker]);
 
+  const dateTimeDisplay = () => {
+    const options: Intl.DateTimeFormatOptions = {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    };
+
+    return new Intl.DateTimeFormat("en-US", options).format(
+        new Date(currentDate)
+    );
+  };
+
   return (
       <div className="w-full rounded-lg h-full flex flex-col">
         <div className="p-4 flex-grow">
           <div
-              className="min-h-[50vh] mb-4 pr-4 overflow-y-auto flex-grow"
+              className="min-h-[50vh] m max-h-[60vh] mb-4 overflow-y-auto custom-scrollbar"
               ref={scrollAreaRef}
           >
             <div className="text-center text-sm text-gray-500 py-1 mb-2 border-b">
-              Chat History
+              {dateTimeDisplay()}
             </div>
-            {messages.map((message) => (
+            {messages.map((message, index) => (
                 <div
                     key={message.id}
                     className={`flex flex-col ${
@@ -280,13 +307,13 @@ export default function Component() {
                     } mb-4`}
                 >
                   <div
-                      className={`rounded-lg p-2 max-w-[70%] ${
+                      className={`rounded-lg p-2 max-w-[70%] markdown-body ${
                           message.role === "user"
                               ? "bg-black text-white"
                               : "bg-gray-100"
                       }`}
                   >
-                    {message.role === 'assistant' ? (
+                    {message.role === "assistant" ? (
                         <ReactMarkdown>{message.content}</ReactMarkdown>
                     ) : (
                         <p>{message.content}</p>
@@ -294,16 +321,21 @@ export default function Component() {
                   </div>
                   <div className="flex items-center mt-1">
                     {message.role === "assistant" && (
-                        <Smile className="h-4 w-4 text-xs text-gray-500" />
+                        <Bot className="h-4 w-4 text-xs text-gray-500 font-bold" />
                     )}
                     <div className="ml-2 text-xs text-gray-500">
-                      {new Date(message.timestamp).toLocaleTimeString()}
+                      {new Date(message.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      })}
                     </div>
                   </div>
                 </div>
             ))}
+            <div ref={endOfMessagesRef} />
             {isLoading && (
-                <div className="flex justify-center items-center">
+                <div className="flex justify-start items-center">
                   <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
                 </div>
             )}
@@ -311,7 +343,7 @@ export default function Component() {
 
           <div className="sticky bottom-0 left-0 w-full bg-white p-2 border-t ">
           <textarea
-              placeholder="Write a reply"
+              placeholder="Message Sugarpool"
               value={inputMessage}
               onChange={(e) => {
                 setInputMessage(e.target.value);
@@ -326,26 +358,26 @@ export default function Component() {
                   !e.shiftKey &&
                   (e.preventDefault(), handleSendMessage())
               }
-              className="w-full p-2 border border-gray-300 rounded-md resize-none overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-2 border border-gray-300 rounded-md resize-none overflow-hidden focus:border-black focus:outline-none"
               rows={1}
               onClick={() => setShowEmojiPicker(false)}
           />
             <div className="flex justify-between items-center mt-2">
               <div className="flex items-center space-x-2">
                 <Button
-                    variant="ghost"
+                    variant={showEmojiPicker ? "dark" : "ghost"}
                     size="icon"
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 >
                   <Smile className="h-5 w-5" />
                 </Button>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                  <Paperclip className="h-5 w-5" />
-                </Button>
+                {/*<Button
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip className="h-5 w-5" />
+              </Button>*/}
                 <input
                     type="file"
                     ref={fileInputRef}
