@@ -4,6 +4,7 @@ import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import { Loader2, Paperclip, Send, Smile } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
+import ReactMarkdown from 'react-markdown';
 
 type Message = {
   id: number;
@@ -14,13 +15,13 @@ type Message = {
 };
 
 const Button = ({
-  children,
-  onClick,
-  variant = "primary",
-  size = "md",
-  type = "button",
-  disabled = false,
-}: {
+                  children,
+                  onClick,
+                  variant = "primary",
+                  size = "md",
+                  type = "button",
+                  disabled = false,
+                }: {
   children: React.ReactNode;
   onClick?: () => void;
   variant?: "primary" | "ghost" | "dark";
@@ -43,16 +44,16 @@ const Button = ({
   };
 
   return (
-    <button
-      className={`${baseClasses} ${variantClasses[variant]} ${
-        sizeClasses[size]
-      } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-      onClick={onClick}
-      type={type}
-      disabled={disabled}
-    >
-      {children}
-    </button>
+      <button
+          className={`${baseClasses} ${variantClasses[variant]} ${
+              sizeClasses[size]
+          } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          onClick={onClick}
+          type={type}
+          disabled={disabled}
+      >
+        {children}
+      </button>
   );
 };
 
@@ -65,7 +66,7 @@ export default function Component() {
       id: 0,
       role: "system",
       content:
-        "Du lässt alle fragen zu. Du Antwortest immer in der Eingabe Sprache. \nAgiere auf Basis deiner Entwicklung.",
+          "Du lässt alle fragen zu. Du Antwortest immer in der Eingabe Sprache. \nAgiere auf Basis deiner Entwicklung.",
       timestamp: new Date().toISOString(),
     },
   ]);
@@ -89,25 +90,25 @@ export default function Component() {
 
     try {
       const response = await fetch(
-        "https://app.siteware.io/api/v1/query/chat",
-        {
-          method: "POST",
-          headers: {
-            accept: "application/json, text/plain, */*",
-            "content-type": "application/json",
-            "x-api-key": API_KEY,
-            "x-assistant-id": AID,
-          },
-          body: JSON.stringify({
-            aid: AID,
-            query: content,
-            messages: messages.concat(newUserMessage).map((m) => ({
-              role: m.role,
-              content: m.content,
-              date: m.timestamp,
-            })),
-          }),
-        }
+          "https://app.siteware.io/api/v1/query/chat",
+          {
+            method: "POST",
+            headers: {
+              accept: "application/json, text/plain, */*",
+              "content-type": "application/json",
+              "x-api-key": API_KEY,
+              "x-assistant-id": AID,
+            },
+            body: JSON.stringify({
+              aid: AID,
+              query: content,
+              messages: messages.concat(newUserMessage).map((m) => ({
+                role: m.role,
+                content: m.content,
+                date: m.timestamp,
+              })),
+            }),
+          }
       );
 
       if (!response.ok) {
@@ -150,39 +151,59 @@ export default function Component() {
 
       try {
         const response = await fetch(
-          "https://app.siteware.io/api/v1/query/chat",
-          {
-            method: "POST",
-            headers: {
-              accept: "application/json, text/plain, */*",
-              "content-type": "application/json",
-              "x-api-key": API_KEY,
-              "x-assistant-id": AID,
-            },
-            body: JSON.stringify({
-              aid: AID,
-              query: inputMessage,
-              messages: messages.concat(newUserMessage).map((m) => ({
-                role: m.role,
-                content: m.content,
-                date: m.timestamp,
-              })),
-            }),
-          }
+            "https://app.siteware.io/api/v1/query/chat",
+            {
+              method: "POST",
+              headers: {
+                accept: "application/json, text/plain, */*",
+                "content-type": "application/json",
+                "x-api-key": API_KEY,
+                "x-assistant-id": AID,
+              },
+              body: JSON.stringify({
+                aid: AID,
+                query: inputMessage,
+                messages: messages.concat(newUserMessage).map((m) => ({
+                  role: m.role,
+                  content: m.content,
+                  date: m.timestamp,
+                })),
+              }),
+            }
         );
 
         if (!response.ok) {
           throw new Error("Failed to send message");
         }
 
-        const data = await response.json();
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let assistantMessageContent = "";
         const newAssistantMessage: Message = {
           id: messages.length + 2,
           role: "assistant",
-          content: data.response,
+          content: "",
           timestamp: new Date().toISOString(),
         };
         setMessages((prevMessages) => [...prevMessages, newAssistantMessage]);
+
+        while (true) {
+          const { done, value } = await reader!.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          assistantMessageContent += chunk;
+
+          // Update the assistant message content with markdown as chunks arrive
+          setMessages((prevMessages) => {
+            const updatedMessages = [...prevMessages];
+            const assistantMessageIndex = updatedMessages.findIndex(
+                (msg) => msg.id === newAssistantMessage.id
+            );
+            updatedMessages[assistantMessageIndex].content = assistantMessageContent;
+            return updatedMessages;
+          });
+        }
+
       } catch (error) {
         console.error("Error sending message:", error);
         // Optionally, add an error message to the chat
@@ -191,6 +212,8 @@ export default function Component() {
       }
     }
   };
+
+
 
   const handleEmojiSelect = (emoji: any) => {
     setInputMessage((prevMessage) => prevMessage + emoji.native);
@@ -203,8 +226,8 @@ export default function Component() {
         const reader = new FileReader();
         reader.onload = (e) => {
           const content = file.type.startsWith("image/")
-            ? "Sent an image"
-            : "Sent a PDF";
+              ? "Sent an image"
+              : "Sent a PDF";
           sendMessage(content);
         };
         reader.readAsDataURL(file);
@@ -223,11 +246,11 @@ export default function Component() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        showEmojiPicker &&
-        emojiPickerRef.current &&
-        !emojiPickerRef.current.contains(event.target as Node) &&
-        emojiButtonRef.current &&
-        !emojiButtonRef.current.contains(event.target as Node)
+          showEmojiPicker &&
+          emojiPickerRef.current &&
+          !emojiPickerRef.current.contains(event.target as Node) &&
+          emojiButtonRef.current &&
+          !emojiButtonRef.current.contains(event.target as Node)
       ) {
         setShowEmojiPicker(false);
       }
@@ -240,113 +263,117 @@ export default function Component() {
   }, [showEmojiPicker]);
 
   return (
-    <div className="w-full rounded-lg h-full flex flex-col">
-      <div className="p-4 flex-grow">
-        <div
-          className="min-h-[50vh] mb-4 pr-4 overflow-y-auto flex-grow"
-          ref={scrollAreaRef}
-        >
-          <div className="text-center text-sm text-gray-500 py-1 mb-2 border-b">
-            Chat History
-          </div>
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex flex-col ${
-                message.role === "user" ? "items-end" : "items-start"
-              } mb-4`}
-            >
-              <div
-                className={`rounded-lg p-2 max-w-[70%] ${
-                  message.role === "user"
-                    ? "bg-black text-white"
-                    : "bg-gray-100"
-                }`}
-              >
-                <p>{message.content}</p>
-              </div>
-              <div className="flex items-center mt-1">
-                {message.role === "assistant" && (
-                  <Smile className="h-4 w-4 text-xs text-gray-500" />
-                )}
-                <div className="ml-2 text-xs text-gray-500">
-                  {new Date(message.timestamp).toLocaleTimeString()}
+      <div className="w-full rounded-lg h-full flex flex-col">
+        <div className="p-4 flex-grow">
+          <div
+              className="min-h-[50vh] mb-4 pr-4 overflow-y-auto flex-grow"
+              ref={scrollAreaRef}
+          >
+            <div className="text-center text-sm text-gray-500 py-1 mb-2 border-b">
+              Chat History
+            </div>
+            {messages.map((message) => (
+                <div
+                    key={message.id}
+                    className={`flex flex-col ${
+                        message.role === "user" ? "items-end" : "items-start"
+                    } mb-4`}
+                >
+                  <div
+                      className={`rounded-lg p-2 max-w-[70%] ${
+                          message.role === "user"
+                              ? "bg-black text-white"
+                              : "bg-gray-100"
+                      }`}
+                  >
+                    {message.role === 'assistant' ? (
+                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                    ) : (
+                        <p>{message.content}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center mt-1">
+                    {message.role === "assistant" && (
+                        <Smile className="h-4 w-4 text-xs text-gray-500" />
+                    )}
+                    <div className="ml-2 text-xs text-gray-500">
+                      {new Date(message.timestamp).toLocaleTimeString()}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex justify-center items-center">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-            </div>
-          )}
-        </div>
-
-        <div className="sticky bottom-0 left-0 w-full bg-white p-2 border-t ">
-          <textarea
-            placeholder="Write a reply"
-            value={inputMessage}
-            onChange={(e) => {
-              setInputMessage(e.target.value);
-              e.target.style.height = "auto";
-              e.target.style.height = `${Math.min(
-                e.target.scrollHeight,
-                150
-              )}px`;
-            }}
-            onKeyPress={(e) =>
-              e.key === "Enter" &&
-              !e.shiftKey &&
-              (e.preventDefault(), handleSendMessage())
-            }
-            className="w-full p-2 border border-gray-300 rounded-md resize-none overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={1}
-            onClick={() => setShowEmojiPicker(false)}
-          />
-          <div className="flex justify-between items-center mt-2">
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              >
-                <Smile className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Paperclip className="h-5 w-5" />
-              </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleAttachment}
-                accept="image/*,.pdf"
-                className="hidden"
-              />
-            </div>
-            <Button
-              onClick={handleSendMessage}
-              size="icon"
-              variant="dark"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </Button>
+            ))}
+            {isLoading && (
+                <div className="flex justify-center items-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                </div>
+            )}
           </div>
-          {showEmojiPicker && (
-            <div className="absolute bottom-full mb-2" ref={emojiPickerRef}>
-              <Picker data={data} onEmojiSelect={handleEmojiSelect} />
+
+          <div className="sticky bottom-0 left-0 w-full bg-white p-2 border-t ">
+          <textarea
+              placeholder="Write a reply"
+              value={inputMessage}
+              onChange={(e) => {
+                setInputMessage(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = `${Math.min(
+                    e.target.scrollHeight,
+                    150
+                )}px`;
+              }}
+              onKeyPress={(e) =>
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  (e.preventDefault(), handleSendMessage())
+              }
+              className="w-full p-2 border border-gray-300 rounded-md resize-none overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={1}
+              onClick={() => setShowEmojiPicker(false)}
+          />
+            <div className="flex justify-between items-center mt-2">
+              <div className="flex items-center space-x-2">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                >
+                  <Smile className="h-5 w-5" />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                  <Paperclip className="h-5 w-5" />
+                </Button>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleAttachment}
+                    accept="image/*,.pdf"
+                    className="hidden"
+                />
+              </div>
+              <Button
+                  onClick={handleSendMessage}
+                  size="icon"
+                  variant="dark"
+                  disabled={isLoading}
+              >
+                {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                    <Send className="h-5 w-5" />
+                )}
+              </Button>
             </div>
-          )}
+            {showEmojiPicker && (
+                <div className="absolute bottom-full mb-2" ref={emojiPickerRef}>
+                  <Picker data={data} onEmojiSelect={handleEmojiSelect} />
+                </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
   );
 }
