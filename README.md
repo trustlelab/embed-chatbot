@@ -13,6 +13,7 @@ run
 git clone https://github.com/trustleorg/embed-chatbot.git
 
 cd project-name
+
 copy .env.example file and create .env file and replace the api credentials
 
 
