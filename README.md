@@ -33,8 +33,7 @@ yarn install
 
 After the dependencies are installed, you can start the application using:
 
-bash
-Copy code
+
 npm start
 
 or
