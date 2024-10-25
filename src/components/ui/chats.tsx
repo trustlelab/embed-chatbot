@@ -6,7 +6,12 @@ import { Loader2, Paperclip, Send, Smile, Bot } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import "github-markdown-css/github-markdown-light.css";
-import { AppChatIcon, AppMessageIcon, AppSendIcon } from "./SvgIcons";
+import {
+  AppChatIcon,
+  AppMessageIcon,
+  AppSendIcon,
+  AppTypingIcon,
+} from "./SvgIcons";
 
 type Message = {
   id: number;
@@ -72,6 +77,7 @@ export default function Component() {
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+  const [isTyping, setIsTyping] = useState(false);
 
   const sendMessage = async (content: string) => {
     setIsLoading(true);
@@ -144,29 +150,27 @@ export default function Component() {
       setMessages([...messages, newUserMessage]);
       setInputMessage("");
       setIsLoading(true);
+      setIsTyping(true);
 
       try {
-        const response = await fetch(
-            process.env.BASE_URL || "YOUR_BASE_URL",
-            {
-              method: "POST",
-              headers: {
-                accept: "application/json, text/plain, */*",
-                "content-type": "application/json",
-                "x-api-key": process.env.API_KEY || "YOUR_API_KEY",
-                "x-assistant-id": process.env.AID || "YOUR_AID",
-              },
-              body: JSON.stringify({
-                aid: process.env.AID || "YOUR_AID",
-                query: inputMessage,
-                messages: messages.concat(newUserMessage).map((m) => ({
-                  role: m.role,
-                  content: m.content,
-                  date: m.timestamp,
-                })),
-              }),
-            }
-        );
+        const response = await fetch(process.env.BASE_URL || "YOUR_BASE_URL", {
+          method: "POST",
+          headers: {
+            accept: "application/json, text/plain, */*",
+            "content-type": "application/json",
+            "x-api-key": process.env.API_KEY || "YOUR_API_KEY",
+            "x-assistant-id": process.env.AID || "YOUR_AID",
+          },
+          body: JSON.stringify({
+            aid: process.env.AID || "YOUR_AID",
+            query: inputMessage,
+            messages: messages.concat(newUserMessage).map((m) => ({
+              role: m.role,
+              content: m.content,
+              date: m.timestamp,
+            })),
+          }),
+        });
 
         if (!response.ok) {
           throw new Error("Failed to send message");
@@ -205,6 +209,7 @@ export default function Component() {
         // Optionally, add an error message to the chat
       } finally {
         setIsLoading(false);
+        setIsTyping(false);
       }
     }
   };
@@ -291,7 +296,9 @@ export default function Component() {
             {showLandingMessage ? (
                 <div className="p-4 text-sm text-center text-gray-500">
                   I'm Sugarpools chatbot. I'm here 24/7 to answer most questions
-                  <div className="flex justify-center my-5"><AppMessageIcon height={80} width={80}/></div>
+                  <div className="flex justify-center my-5">
+                    <AppMessageIcon height={80} width={80} />
+                  </div>
                 </div>
             ) : (
                 <>
@@ -317,27 +324,50 @@ export default function Component() {
                           ) : (
                               <p>{message.content}</p>
                           )}
+                          {message.role === "assistant" &&
+                              isTyping &&
+                              index === messages.length - 1 && (
+                                  <span className="inline-block ml-1 animate-pulse">
+                          ▋
+                        </span>
+                              )}
                         </div>
                         <div className="flex items-center mt-1">
-                          {message.role === "assistant" && (
-                              <AppChatIcon width={25} height={25} />
+                          {message.role === "assistant" ? (
+                              <>
+                                {isLoading ? (
+                                    <div className="flex justify-start items-center">
+                                      <AppTypingIcon />
+                                    </div>
+                                ) : (
+                                    <>
+                                      <AppChatIcon width={25} height={25} />
+                                      <div className="ml-2 text-xs text-gray-500">
+                                        {new Date(message.timestamp).toLocaleTimeString(
+                                            [],
+                                            {
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                              hour12: false,
+                                            }
+                                        )}
+                                      </div>
+                                    </>
+                                )}
+                              </>
+                          ) : (
+                              <div className="ml-2 text-xs text-gray-500">
+                                {new Date(message.timestamp).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: false,
+                                })}
+                              </div>
                           )}
-                          <div className="ml-2 text-xs text-gray-500">
-                            {new Date(message.timestamp).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: false,
-                            })}
-                          </div>
                         </div>
                       </div>
                   ))}
                   <div ref={endOfMessagesRef} />
-                  {isLoading && (
-                      <div className="flex justify-start items-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-                      </div>
-                  )}
                 </>
             )}
           </div>

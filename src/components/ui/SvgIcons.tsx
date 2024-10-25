@@ -58,8 +58,8 @@ const AppMessageIcon: React.FC<AppChatIconProps> = ({
 }) => {
   return (
     <svg
-    width={width}
-    height={height}
+      width={width}
+      height={height}
       viewBox="0 0 100 100"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -77,4 +77,18 @@ const AppMessageIcon: React.FC<AppChatIconProps> = ({
     </svg>
   );
 };
-export { AppChatIcon, AppSendIcon, AppMessageIcon };
+
+const AppTypingIcon: React.FC<AppChatIconProps> = ({
+  width = 34,
+  height = 34,
+  fill = "black",
+}) => {
+  return (
+    <svg height="40" width="40" className="loader">
+      <circle className="dot" cx="10" cy="20" r="3" style={{fill:"grey"}} />
+      <circle className="dot" cx="20" cy="20" r="3" style={{fill:"grey"}}  />
+      <circle className="dot" cx="30" cy="20" r="3" style={{fill:"grey"}}  />
+    </svg>
+  );
+};
+export { AppChatIcon, AppSendIcon, AppMessageIcon, AppTypingIcon };

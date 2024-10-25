@@ -2,6 +2,7 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+/* Add any additional custom styles here */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
   margin-left: 2px;
@@ -24,4 +25,16 @@
 .custom-scrollbar .overflow {
   margin-right: -12px;
   padding-right: 4px;
+}
+
+@keyframes blink { 50% { fill: transparent }}
+.dot {
+  animation: 1s blink infinite;
+  fill: grey;
+}
+.dot:nth-child(2) { animation-delay: 250ms }
+.dot:nth-child(3) { animation-delay: 500ms }
+
+.loader {
+  color: grey;
 }
