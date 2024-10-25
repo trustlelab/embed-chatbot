@@ -38,3 +38,21 @@
 .loader {
   color: grey;
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.95); }
+}
+
+.chat-enter {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.chat-exit {
+  animation: fadeOut 0.3s ease-in;
+}
