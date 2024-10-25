@@ -6,6 +6,7 @@ import { Loader2, Paperclip, Send, Smile, Bot } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import "github-markdown-css/github-markdown-light.css";
+import { AppChatIcon, AppMessageIcon, AppSendIcon } from "./SvgIcons";
 
 type Message = {
   id: number;
@@ -58,22 +59,14 @@ const Button = ({
   );
 };
 
-const API_KEY = process.env.API_KEY || "YOUR_API_KEY";
-const AID = process.env.AID || "YOUR_AID";
-
 export default function Component() {
   const currentDate = new Date().toISOString();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 0,
-      role: "assistant",
-      content: `Du lässt alle fragen zu. Du Antwortest immer in der Eingabe Sprache. \nAgiere auf Basis deiner Entwicklung.`,
-      timestamp: currentDate,
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showLandingMessage, setShowLandingMessage] = useState(true);
+  const [firstMessageSent, setFirstMessageSent] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -91,27 +84,24 @@ export default function Component() {
     setMessages((prevMessages) => [...prevMessages, newUserMessage]);
 
     try {
-      const response = await fetch(
-          "https://app.siteware.io/api/v1/query/chat",
-          {
-            method: "POST",
-            headers: {
-              accept: "application/json, text/plain, */*",
-              "content-type": "application/json",
-              "x-api-key": API_KEY,
-              "x-assistant-id": AID,
-            },
-            body: JSON.stringify({
-              aid: AID,
-              query: content,
-              messages: messages.concat(newUserMessage).map((m) => ({
-                role: m.role,
-                content: m.content,
-                date: m.timestamp,
-              })),
-            }),
-          }
-      );
+      const response = await fetch(process.env.BASE_URL || "YOUR_BASE_URL", {
+        method: "POST",
+        headers: {
+          accept: "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "x-api-key": process.env.API_KEY || "YOUR_API_KEY",
+          "x-assistant-id": process.env.AID || "YOUR_AID",
+        },
+        body: JSON.stringify({
+          aid: process.env.AID || "YOUR_AID",
+          query: content,
+          messages: messages.concat(newUserMessage).map((m) => ({
+            role: m.role,
+            content: m.content,
+            date: m.timestamp,
+          })),
+        }),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to send message");
@@ -140,6 +130,10 @@ export default function Component() {
   };
 
   const handleSendMessage = async () => {
+    if (!firstMessageSent) {
+      setFirstMessageSent(true);
+      setShowLandingMessage(false);
+    }
     if (inputMessage.trim()) {
       const newUserMessage: Message = {
         id: messages.length + 1,
@@ -153,17 +147,17 @@ export default function Component() {
 
       try {
         const response = await fetch(
-            "https://app.siteware.io/api/v1/query/chat",
+            process.env.BASE_URL || "YOUR_BASE_URL",
             {
               method: "POST",
               headers: {
                 accept: "application/json, text/plain, */*",
                 "content-type": "application/json",
-                "x-api-key": API_KEY,
-                "x-assistant-id": AID,
+                "x-api-key": process.env.API_KEY || "YOUR_API_KEY",
+                "x-assistant-id": process.env.AID || "YOUR_AID",
               },
               body: JSON.stringify({
-                aid: AID,
+                aid: process.env.AID || "YOUR_AID",
                 query: inputMessage,
                 messages: messages.concat(newUserMessage).map((m) => ({
                   role: m.role,
@@ -277,11 +271,9 @@ export default function Component() {
 
   const dateTimeDisplay = () => {
     const options: Intl.DateTimeFormatOptions = {
-      month: "short",
+      weekday: "short",
       day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
+      month: "short",
     };
 
     return new Intl.DateTimeFormat("en-US", options).format(
@@ -296,48 +288,57 @@ export default function Component() {
               className="min-h-[50vh] m max-h-[60vh] mb-4 overflow-y-auto custom-scrollbar"
               ref={scrollAreaRef}
           >
-            <div className="text-center text-sm text-gray-500 py-1 mb-2 border-b">
-              {dateTimeDisplay()}
-            </div>
-            {messages.map((message, index) => (
-                <div
-                    key={message.id}
-                    className={`flex flex-col ${
-                        message.role === "user" ? "items-end" : "items-start"
-                    } mb-4`}
-                >
-                  <div
-                      className={`rounded-lg p-2 max-w-[70%] markdown-body ${
-                          message.role === "user"
-                              ? "bg-black text-white"
-                              : "bg-gray-100"
-                      }`}
-                  >
-                    {message.role === "assistant" ? (
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
-                    ) : (
-                        <p>{message.content}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center mt-1">
-                    {message.role === "assistant" && (
-                        <Bot className="h-4 w-4 text-xs text-gray-500 font-bold" />
-                    )}
-                    <div className="ml-2 text-xs text-gray-500">
-                      {new Date(message.timestamp).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                      })}
-                    </div>
-                  </div>
+            {showLandingMessage ? (
+                <div className="p-4 text-sm text-center text-gray-500">
+                  I'm Sugarpools chatbot. I'm here 24/7 to answer most questions
+                  <div className="flex justify-center my-5"><AppMessageIcon height={80} width={80}/></div>
                 </div>
-            ))}
-            <div ref={endOfMessagesRef} />
-            {isLoading && (
-                <div className="flex justify-start items-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-                </div>
+            ) : (
+                <>
+                  <div className="text-center text-sm text-gray-500 py-1 mb-2">
+                    {dateTimeDisplay()}
+                  </div>
+                  {messages.map((message, index) => (
+                      <div
+                          key={message.id}
+                          className={`flex flex-col ${
+                              message.role === "user" ? "items-end" : "items-start"
+                          } mb-4`}
+                      >
+                        <div
+                            className={`rounded-lg p-2 max-w-[70%] markdown-body ${
+                                message.role === "user"
+                                    ? "bg-black text-white"
+                                    : "bg-gray-100"
+                            }`}
+                        >
+                          {message.role === "assistant" ? (
+                              <ReactMarkdown>{message.content}</ReactMarkdown>
+                          ) : (
+                              <p>{message.content}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center mt-1">
+                          {message.role === "assistant" && (
+                              <AppChatIcon width={25} height={25} />
+                          )}
+                          <div className="ml-2 text-xs text-gray-500">
+                            {new Date(message.timestamp).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                  ))}
+                  <div ref={endOfMessagesRef} />
+                  {isLoading && (
+                      <div className="flex justify-start items-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                      </div>
+                  )}
+                </>
             )}
           </div>
 
@@ -395,7 +396,7 @@ export default function Component() {
                 {isLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                    <Send className="h-5 w-5" />
+                    <AppSendIcon />
                 )}
               </Button>
             </div>
