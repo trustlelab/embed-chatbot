@@ -34,6 +34,7 @@ module.exports = {
     }),
   ],
   devServer: {
+    allowedHosts: "all",
     static: {
       directory: path.join(__dirname, "dist"),
     },
