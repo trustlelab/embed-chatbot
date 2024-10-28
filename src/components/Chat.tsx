@@ -1,7 +1,7 @@
 'use client'
 
 import { Maximize2, Minimize2, X } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import ChatComponent from "./ui/chats";
 import { AppChatIcon } from "./ui/SvgIcons";
 
@@ -11,50 +11,41 @@ export default function Component() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
 
   useEffect(() => {
-    if (isMobile && isOpen) {
-      setIsExpanded(true);
-    }
-  }, [isMobile, isOpen]);
+    if (isMobile && isOpen) setIsExpanded(true)
+  }, [isMobile, isOpen])
 
-  const handleToggle = () => {
-    if (isExpanded && !isMobile) {
-      setIsExpanded(false);
-    } else {
-      setIsOpen(!isOpen);
-      if (isMobile) {
-        setIsExpanded(true);
-      }
-    }
-  };
+  const handleToggle = useCallback(() => {
+    !isExpanded && setIsExpanded(false);
 
-  const handleExpand = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsExpanded(!isExpanded);
-  };
+    setTimeout(() => {
+      setIsOpen((prev) => !prev);
+      if (isMobile) setIsExpanded(true);
+    }, 0);
+  }, [isMobile]);
 
-  const handleClose = () => {
-    setIsOpen(false);
-    setIsExpanded(false);
-  };
+  const handleExpand = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsExpanded((prev) => !prev)
+  }, [])
+
+  const handleClose = useCallback(() => {
+    setIsOpen(false)
+    setTimeout(() => setIsExpanded(false), 300)
+  }, [])
 
   return (
       <>
         <button
             className={`fixed w-16 h-16 flex items-center justify-center rounded-full shadow-lg border-gray-300 bg-white text-black
           hover:bg-black hover:text-white hover:border-black hover:scale-110
-          active:scale-90
-          ${isExpanded ? "top-6 left-8 z-50" : "bottom-6 left-8"}
+          active:scale-90 bottom-6 left-8
           ${isOpen ? "rotate-180" : "rotate-0"}
           ${isOpen && isExpanded ? "opacity-0" : "opacity-100"}`}
             onClick={handleToggle}
